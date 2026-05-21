@@ -1,160 +1,101 @@
-# Uplink Net Pro — Backend Deployment Guide
+# Uplink Net Pro — Backend v2.0
 
-## What this server does
+## ✅ Pre-Configured M-Pesa Sandbox Settings
 
-| Endpoint | Purpose |
-|---|---|
-| `POST /api/mpesa/oauth/token` | Gets Daraja access token (avoids CORS in browser) |
-| `POST /api/mpesa/stkpush` | Sends STK Push to customer's phone |
-| `POST /api/mpesa/stkquery` | Checks if customer paid |
-| `POST /api/mpesa/callback` | Safaricom calls this when payment completes |
-| `GET /api/payment/status/:id` | Portal polls this to confirm payment |
-| `GET /api/payments` | Admin view of recent payments |
+Your `.env` is ready with:
+- Consumer Key & Secret → configured
+- Shortcode: `174379` (Safaricom sandbox)
+- Passkey: sandbox passkey (configured)
+- Environment: `sandbox`
+- Admin Secret: configured (see `.env`)
 
 ---
 
-## Option A — Deploy on Render (free, recommended)
+## 🚀 Quick Start
 
-1. Push this folder to a GitHub repo
-2. Go to https://render.com → New → Web Service
-3. Connect your GitHub repo
-4. Set:
-   - **Build command:** `npm install`
-   - **Start command:** `node server.js`
-5. Add environment variables (from .env.example) in the Render dashboard
-6. Deploy — you get a URL like `https://uplink-backend.onrender.com`
-
----
-
-## Option B — Deploy on Railway (free tier)
-
-1. Go to https://railway.app → New Project → Deploy from GitHub
-2. Connect your repo
-3. Add environment variables in the Variables tab
-4. Railway auto-detects Node.js and deploys
-
----
-
-## Option C — Run on your Android phone with Termux
-
+### 1. Install dependencies
 ```bash
-# Install Termux from F-Droid, then:
-pkg update && pkg install nodejs git
-
-# Clone or copy your backend files
-mkdir uplink-backend && cd uplink-backend
-
-# Copy server.js, package.json, .env.example into this folder
-# Then:
-cp .env.example .env
-nano .env   # fill in your credentials
-
+cd uplink-backend-v2
 npm install
+```
+
+### 2. Start the server (local test)
+```bash
 node server.js
 ```
-
-Server runs at `http://localhost:3000`
-Other devices on your WiFi reach it at `http://YOUR_PHONE_IP:3000`
+Server starts on `http://localhost:3000`
 
 ---
 
-## Connecting the admin dashboard to this backend
+## 🌐 Deploy to Render (Free)
 
-In the admin dashboard:
-1. Go to **Settings → M-Pesa Config**
-2. Set **M-Pesa Proxy URL** to your backend URL:
-   - Render: `https://uplink-backend.onrender.com/api/mpesa`
-   - Termux: `http://192.168.x.x:3000/api/mpesa`
-3. Fill in Shortcode, Passkey, Consumer Key, Consumer Secret
-4. Set **Callback URL** to: `https://your-backend.onrender.com/api/mpesa/callback`
-5. Click **Save & Publish**
+1. Push to GitHub (make sure `.env` is in `.gitignore` ✓)
+2. Go to https://render.com → New Web Service
+3. Connect your repo, set runtime to **Node**
+4. Add these Environment Variables in Render dashboard:
 
-The portals will now use your backend for all M-Pesa calls.
+| Key | Value |
+|-----|-------|
+| `MPESA_CONSUMER_KEY` | `Vzx5E8QuCtAvNVGtWGq1HrPpLp334QsAOQ0pu2eMbSam4VG6` |
+| `MPESA_CONSUMER_SECRET` | `eHGKG8i0SPydHEbspSicOSlUF7s3E40HOS5CO0cAZ30eUmUrdTJqRJQpnwkUGPDR` |
+| `MPESA_SHORTCODE` | `174379` |
+| `MPESA_PASSKEY` | `bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919` |
+| `MPESA_ENV` | `sandbox` |
+| `MPESA_CALLBACK_URL` | `https://YOUR-APP.onrender.com/api/mpesa/callback` |
+| `ADMIN_SECRET` | `e6f33035dc6c93ee84c49fa10249aa50260bf3f8df5ac033d26f92555cad5b15` |
 
----
-
-## Setting up Safaricom Daraja
-
-### Sandbox (for testing)
-1. Register at https://developer.safaricom.co.ke
-2. Create an app → get Consumer Key and Consumer Secret
-3. Use shortcode `174379` and the test passkey from .env.example
-4. Use any test phone: `254708374149`
-
-### Going Live
-1. Apply for Go-Live in the Daraja portal
-2. Replace sandbox credentials with live ones
-3. Change `MPESA_ENV=live` in your environment variables
-4. Update callback URL to your real HTTPS server URL
-5. Safaricom requires HTTPS for callbacks — Render/Railway give you this for free
+5. Once deployed, your backend URL is: `https://YOUR-APP.onrender.com`
 
 ---
 
-## How the full payment flow works
+## ⚠️ After Deploying — Update Callback URL
 
+Once you have your Render URL, update **two places**:
+
+**A) In `.env` (for local runs):**
 ```
-Customer taps "Pay" on portal
-        ↓
-Portal → POST /api/mpesa/stkpush → Daraja API
-        ↓
-Daraja sends STK prompt to customer's phone
-        ↓
-Customer enters PIN
-        ↓
-Daraja → POST /api/mpesa/callback → Your server
-        ↓
-Server stores payment as "complete"
-        ↓
-Portal polls GET /api/payment/status/:checkoutId
-        ↓
-Portal shows success screen + receipt number
+MPESA_CALLBACK_URL=https://YOUR-APP.onrender.com/api/mpesa/callback
 ```
 
----
-
-## Security notes
-
-- Your M-Pesa keys live in environment variables — never in code
-- The `.env` file is in `.gitignore` — never committed to GitHub
-- CORS is locked to your frontend origin only
-- The `/api/payments` admin endpoint requires `x-admin-key` header
-- The callback endpoint accepts all IPs (Safaricom IPs are not fixed)
-  but validates the payload structure
+**B) In Admin Dashboard → Settings → M-Pesa API Configuration:**
+- Backend Server URL: `https://YOUR-APP.onrender.com`
+- Callback URL: `https://YOUR-APP.onrender.com/api/mpesa/callback`
+- Click **Save & Publish Config**
 
 ---
 
-## Testing with curl
+## 🧪 Testing STK Push
 
-```bash
-# Test server health
-curl http://localhost:3000/
+1. Open the Admin Dashboard → Settings → API Config
+2. Click **Test OAuth Token** — should return ✓
+3. Open the Captive Portal in a browser
+4. Enter a **Safaricom sandbox test phone**: `254708374149`
+5. Select a package → pay → you should see the STK push request
 
-# Test OAuth token (uses env var credentials)
-curl -X POST http://localhost:3000/api/mpesa/oauth/token
+> **Note:** In sandbox mode, STK push prompts don't actually appear on phones.
+> The callback returns success automatically after a few seconds.
 
-# Test STK Push (sandbox)
-curl -X POST http://localhost:3000/api/mpesa/stkpush \
-  -H "Content-Type: application/json" \
-  -d '{"phone":"0708374149","amount":1,"accountRef":"Test"}'
+---
 
-# Simulate a callback (what Safaricom sends you)
-curl -X POST http://localhost:3000/api/mpesa/callback \
-  -H "Content-Type: application/json" \
-  -d '{
-    "Body": {
-      "stkCallback": {
-        "MerchantRequestID": "test-merchant-id",
-        "CheckoutRequestID": "ws_CO_123456",
-        "ResultCode": 0,
-        "ResultDesc": "The service request is processed successfully.",
-        "CallbackMetadata": {
-          "Item": [
-            {"Name":"Amount","Value":100},
-            {"Name":"MpesaReceiptNumber","Value":"QGH2X3K9A"},
-            {"Name":"PhoneNumber","Value":254712345678}
-          ]
-        }
-      }
-    }
-  }'
+## 🔑 Your Admin Secret Key
 ```
+e6f33035dc6c93ee84c49fa10249aa50260bf3f8df5ac033d26f92555cad5b15
+```
+Keep this secret. It protects `/api/payments`, `/api/logs`, and `/api/security/*`.
+
+---
+
+## API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/` | Health check |
+| POST | `/api/mpesa/oauth/token` | Get OAuth token |
+| POST | `/api/mpesa/stkpush` | Trigger STK push |
+| POST | `/api/mpesa/stkquery` | Query payment status |
+| POST | `/api/mpesa/callback` | Safaricom callback receiver |
+| GET | `/api/payment/status/:id` | Poll payment status |
+| GET | `/api/payments` | List payments (admin) |
+| GET | `/api/logs` | Request logs (admin) |
+| GET | `/api/security/locked` | Locked IPs (admin) |
+| POST | `/api/security/unlock` | Unlock IP (admin) |

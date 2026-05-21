@@ -1,7 +1,7 @@
 {
   "name": "uplink-net-pro-backend",
-  "version": "2.0.0",
-  "description": "Secure M-Pesa proxy and callback handler for Uplink Net Pro WiFi portal",
+  "version": "2.1.0",
+  "description": "Production-grade M-Pesa proxy, callback handler, and WiFi portal backend for Uplink Net Pro",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
